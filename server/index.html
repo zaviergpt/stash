@@ -1,0 +1,388 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>Stash Dashboard</title>
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" />
+        <style>
+            @import url('https://fonts.googleapis.com/css2?family=Geologica:wght@100..900&display=swap');
+            * {
+                border: 0;
+                padding: 0;
+                margin: 0;
+                outline: none;
+                user-select: none;
+                font-family: "Geologica", sans-serif;
+                font-optical-sizing: auto;
+                transition: all 0.125s, color 0s;
+            }
+            :root {
+                --logo: #b25dff
+            }
+            body {
+                font-weight: 300;
+                background-color: #F9F9F9;
+                color: #222222;
+            }
+            h1.logo {
+                font-size: 30px;
+                font-weight: 600;
+                line-height: 30px;
+                color: var(--logo);
+                letter-spacing: -2.25px;
+            }
+            .tab {
+                display: none;
+            }
+            .navigation {
+                position: sticky;
+                top: 0;
+                left: 0;
+                right: 0;
+                height: 65px;
+                display: none;
+                align-items: center;
+                justify-content: center;
+                z-index: 1000;
+                background-color: #FFFFFF;
+                box-shadow: 0px 0px 2.5px rgba(0, 0, 0, 0.25);
+                list-style-type: none;
+            }
+            .navigation li button, #login-tab .container button {
+                aspect-ratio: 1;
+                font-size: 125%;
+                border-radius: 5px;
+                color: var(--logo);
+                border: 1px solid var(--logo);
+                background-color: rgba(0, 0, 0, 0);
+            }
+            .navigation li button:hover, #login-tab .container button:hover {
+                background-color: var(--logo);
+                color: #FFFFFF;
+            }
+            .navigation li a {
+                padding: 5px 10px;
+                margin: 0px calc(7.5px/2);
+                text-decoration: none;
+                color: #222222;
+                background-color: rgba(0, 0, 0, 0);
+            }
+            .navigation li a.active {
+                color: #FFFFFF;
+                background-color: var(--logo);
+                border-radius: 5px;
+            }
+            #login-tab .container {
+                position: absolute;
+                top: 50%;
+                left: 50%;
+                transform: translate(-50%, -50%);
+                list-style-type: none;
+                background-color: #FFFFFF;
+                box-shadow: 0px 0px 100px rgba(0, 0, 0, 0.1);
+                border-radius: 7.5px;
+                overflow: hidden;
+                padding: 0px 15px;
+                min-width: calc(260px - (15px * 2));
+            }
+            #login-tab .container li span {
+                display: block;
+                text-transform: uppercase;
+                font-size: 10px;
+                line-height: calc(10px * 2);
+                color: rgba(0, 0, 0, 0.5);
+                font-weight: 500;
+            }
+            #login-tab .container li input[type="text"] {
+                border: 1px solid rgba(0, 0, 0, 0.05);
+                background-color: rgba(0, 0, 0, 0.00625);
+                border-radius: 7.5px;
+                padding: 10px 11.25px;
+                color: rgba(0, 0, 0, 0.75);
+                font-family: monospace;
+                font-weight: 600;
+                letter-spacing: -0.25px;
+                width: calc(100% - (11.25px * 2))
+            }
+            #login-tab .container li:has(h1.logo), .container li:has(button) {
+                display: flex;
+                align-items: center;
+                justify-content: center;
+            }
+            #login-tab .container h2 {
+                font-size: 18px;
+                line-height: 18px;
+                margin-bottom: 20px;
+            }
+            #login-tab .container p {
+                font-size: 11px;
+                line-height: calc(11px * 1.1);
+                margin-bottom: 15px;
+                color: rgba(0, 0, 0, 0.5);
+                font-weight: 400;
+                text-transform: uppercase;
+            }
+            #login-tab .container .screen {
+                display: none;
+            }
+            #login-tab .container #login-2fa-screen {
+                margin-top: 10px;
+            }
+            #login-tab .container #login-2fa-screen img {
+                margin: 0px auto;
+                border: 1px solid rgba(0, 0, 0, 0.1);
+                border-radius: 7.5px;
+            }
+            #login-tab .container #login-2fa-screen .section {
+                display: none;
+            }
+            #login-tab .footer {
+                position: absolute;
+                bottom: 0;
+                left: 0;
+                right: 0;
+                text-align: center;
+                font-size: 10px;
+                color: rgba(0, 0, 0, 0.5);
+                padding: 15px;
+            }
+            #login-tab .footer h1.logo {
+                color: rgba(0, 0, 0, 0.125);
+                margin-bottom: 5px;
+            }
+            #dashboard-tab, #vaults-tab, #uploads-tab {
+                position: absolute;
+                top: 50%;
+                left: 50%;
+                transform: translate(-50%, -50%);
+                width: 50%;
+                max-width: 750px;
+            }
+            #vaults-tab .vaults {
+                background-color: #FFFFFF;
+                max-height: 250px;
+                width: 100%;
+                text-align: left;
+                font-size: 15px;
+                font-weight: 300;
+                border-collapse: collapse;
+                overflow: hidden;
+            }
+            #vaults-tab .vaults tr th {
+                font-weight: 500;
+                color: rgba(0, 0, 0, 0.75);
+                text-transform: uppercase;
+                font-size: 10px;
+                padding: 5px 7.5px;
+                border: 1px solid rgba(0, 0, 0, 0.1)
+            }
+            #vaults-tab .vaults tr td {
+                height: 30px;
+                padding: 0px 7.5px;
+                border: 1px solid rgba(0, 0, 0, 0.1);
+                font-size: 14px;
+            }
+            #vaults-tab .vaults tr:nth-child(even) {
+                background-color: rgba(0, 0, 0, 0.025)
+            }
+            #vaults-tab .vaults .identity, #vaults-tab .vaults .ip-address, #vaults-tab .vaults .status {
+                font-family: monospace;
+            }
+            #vaults-tab .vaults .status {
+                padding: 0;
+                text-align: center;
+                font-weight: 600;
+            }
+        </style>
+    </head>
+    <body>
+        <div class="tab" id="login-tab">
+            <ul class="container">
+                <li style="height: 75px; margin-bottom: -15px"><h1 class="logo">stash.</h1></li>
+                <div class="screen" id="login-email-screen">
+                    <li><span>Email</span><input type="text" id="login-email" autocomplete="off"></li>
+                </div>
+                <div class="screen" id="login-2fa-screen">
+                    <div style="display: flex; align-items: center">
+                        <div class="section" style="margin: 0px 20px; max-width: 200px" id="login-qrcode-section">
+                            <li style="text-align: center">
+                                <p>Scan this QR Code with your preferred authenticator app.</p>
+                            </li>
+                            <li style="display: flex; justify-content: center">
+                                <img id="login-qrcode">
+                            </li>
+                        </div>
+                        <div class="section" style="margin: 0px 20px; min-width: 250px" id="login-digit-section">
+                            <p style="text-align: center">Enter the six digit code<br>from your authenticator app.</p>
+                            <li>
+                                <span>One-Time Password</span>
+                                <input autocomplete="off" type="text" id="login-digit" style="font-size: 17.5px; font-weight: 600; text-align: center">
+                            </li>
+                        </div>
+                    </div>
+                </div>
+                <li style="height: 100px; margin-top: -2.5px">
+                    <button id="login-button" style="height: 50px">
+                        <i class="fa-solid fa-arrow-right"></i>
+                    </button>
+                </li>
+            </ul>
+            <ul class="footer">
+                <li>&copy; Copyright 2024, Stash Ltd.</li>
+            </ul>
+        </div>
+        <div class="tab" id="dashboard-tab"></div>
+        <div class="tab" id="vaults-tab">
+            <table class="vaults">
+                <tr>
+                    <th style="width: 40%">Name</th>
+                    <th style="width: 20%">ID</th>
+                    <th style="width: 20%">IP Address</th>
+                    <th style="width: 20%">Status</th>
+                </tr>
+                <tr>
+                    <td>Stash 1</td>
+                    <td class="identity">0d9wn29sns8</td>
+                    <td class="ip-address">192.168.0.101</td>
+                    <td class="status">Online</td>
+                </tr>
+            </table>
+        </div>
+        <div class="tab" id="uploads-tab"></div>
+        <ul class="navigation">
+            <li style="position: absolute; top: 50%; left: calc((65px - 30px)/2); transform: translate(0, -50%)">
+                <h1 class="logo">stash.</h1>
+            </li>
+            <li class="links" style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%)">
+                <a href="#WyJkYXNoYm9hcmQiXQ==">Dashboard</a>
+                <a href="#WyJ2YXVsdHMiXQ==">My Vaults</a>
+                <a href="#WyJ1cGxvYWRzIl0=">Uploads</a>
+            </li>
+            <li class="actions" style="position: absolute; top: 50%; right: calc((65px - 45px)/2); transform: translate(0, -50%)">
+                <button style="width: 45px; border: 0" id="navigation-logout" onclick="localStorage.removeItem('session'); window.location.href = window.location.origin">
+                    <i class="fa-solid fa-arrow-right-from-bracket"></i>
+                </button>
+            </li>
+        </ul>
+    </body>
+    <script>
+        function selectTab(id) {
+            tabs = document.getElementsByClassName("tab")
+            navigation = document.getElementsByClassName("navigation")[0]
+            for (var tab in tabs) {
+                tab = [tabs[tab], tab]
+                if (tab[0].id) {
+                    if (tab[0].id.split("-").includes(id)) {
+                        tab[0].style.display = "block"
+                    } else {
+                        tab[0].style.display = "none"
+                    }
+                }
+            }
+            if (!["login"].includes(id)) {
+                links = navigation.getElementsByTagName("a")
+                for (var link in links) {
+                    link = links[link]
+                    if (link.href) {
+                        if (JSON.parse(atob(link.href.split("#")[1])).includes(id)) {
+                            link.className = "active"
+                        } else {
+                            link.className = null
+                        }
+                    }
+                }
+                navigation.style.display = "block"
+            } else navigation.style.display = "none"
+        }
+        window.addEventListener("load", async () => {
+            if (window.location.hash.length > 0) {
+                window.location.href = window.location.origin
+            } else if (localStorage.getItem("session")) {
+                request = await (await fetch("/accounts/authorize", {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                        "Authorization": btoa(JSON.stringify({
+                            token: localStorage.getItem("session")
+                        }))
+                    }
+                })).json()
+                if (request.token) {
+                    window.location.hash = "#" + btoa(JSON.stringify(["vaults"]))
+                } else {
+                    localStorage.removeItem("session")
+                    window.location.reload()
+                }
+            } else {
+                window.location.hash = "#" + btoa(JSON.stringify(["login"]))
+            }
+            window.addEventListener("hashchange", (event) => {
+                event.hash = event.newURL.includes("#") ? JSON.parse(atob(event.newURL.split("#")[1])) : null
+                if (event.hash) {
+                    if (event.hash[0] === "login") {
+                        login = [[document.getElementById("login-email-screen"), {
+                            email: document.getElementById("login-email")
+                        }], [document.getElementById("login-2fa-screen"), {
+                            qrcode: document.getElementById("login-qrcode"),
+                            digit: document.getElementById("login-digit"),
+                            sections: {
+                                qrcode: document.getElementById("login-qrcode-section"),
+                                digit: document.getElementById("login-digit-section")
+                            }
+                        }], document.getElementById("login-button")]
+                        login[2].onclick = async function() {
+                            if (login[0][1].email.value.length > 0) {
+                                request = await (await fetch("/accounts/authorize", {
+                                    method: "POST",
+                                    headers: {
+                                        "Content-Type": "application/json",
+                                        "Authorization": btoa(JSON.stringify({
+                                            code: btoa(JSON.stringify({
+                                                email: login[0][1].email.value.toLowerCase()
+                                            }))
+                                        }))
+                                    }
+                                })).json()
+                                if (request.id) {
+                                    if (request.dataURL && request.secret) {
+                                        login[1][1].qrcode.src = request.dataURL
+                                        login[1][1].sections.qrcode.style.display = "block"
+                                    }
+                                    login[0][0].style.display = "none"
+                                    login[1][0].style.display = "block"
+                                    login[1][1].sections.digit.style.display = "block"
+                                    login[2].onclick = async function() {
+                                        request = await (await fetch("/accounts/authorize", {
+                                            method: "POST",
+                                            headers: {
+                                                "Content-Type": "application/json",
+                                                "Authorization": btoa(JSON.stringify({
+                                                    code: btoa(JSON.stringify({
+                                                        id: request.id,
+                                                        passcode: login[1][1].digit.value
+                                                    }))
+                                                }))
+                                            }
+                                        })).json()
+                                        if (request.token) {
+                                            localStorage.setItem("session", request.token)
+                                            window.location.href = window.location.origin
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                        login[0][0].style.display = "block"
+                        selectTab("login")
+                    } else if (event.hash[0] === "vaults") {
+                        selectTab("vaults")
+                    } else if (event.hash[0] === "dashboard") {
+                        selectTab("dashboard")
+                    } else if (event.hash[0] === "uploads") {
+                        selectTab("uploads")
+                    }
+                }
+            })
+        })
+    </script>
+</html>

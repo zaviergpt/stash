@@ -1,5 +1,4 @@
 
-const e = require("cors")
 const fs = require("fs")
 
 const { v4: uuidv4 } = require("uuid")
