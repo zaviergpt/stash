@@ -10,7 +10,8 @@ const config = (function(){
             id: uuidv4().split("-").pop(),
             name: "STASH_CLIENT_NAME",
             server: "STASH_SERVER_ID",
-            domain: "STASH_SERVER_DOMAIN"
+            domain: "STASH_SERVER_DOMAIN",
+            isPublic: [true, null]
         }))
     } else {
         defaults = [{ name: "STASH_CLIENT_NAME", server: "STASH_SERVER_ID", domain: "STASH_SERVER_DOMAIN" }, JSON.parse(fs.readFileSync("./config.json"))]
@@ -26,8 +27,9 @@ const config = (function(){
 })()
 
 function start() {
+    if (!fs.existsSync("./store")) fs.mkdirSync("./store")
     token = (function(){
-        data = [JSON.stringify([config.id, config.name]), []]
+        data = [JSON.stringify([config.id, config.name, config.isPublic, "192.168.0.101"]), []]
         config.temporary = [config.server, btoa(config.server)]
         while (data[0].length > config.temporary[0].length) {
             config.temporary = [
@@ -44,11 +46,31 @@ function start() {
         }
         return encodeURIComponent(data[1].join(""))
     })()
+    streams = {}
     socket = new WebSocket(`ws://${config.domain}/${token}`)
     socket.on("open", () => {
         console.clear()
         console.log(`\nSuccessfully connected to ${config.domain} [${config.server}]\nas ${config.name} [${config.id}].\n`)
         socket.on("ping", () => socket.pong())
+        socket.on("message", (chunk, isBinary) => {
+            if (isBinary) {
+                combinedBuffer = new Uint8Array(chunk)
+                jsonLength = new DataView(combinedBuffer.buffer).getUint32(0)
+                metadata = JSON.parse(new TextDecoder().decode(combinedBuffer.slice(4, 4 + jsonLength)))
+                chunk = chunk.slice(4 + jsonLength)
+                if (!streams[metadata[1]]) streams[metadata[1]] = [0, fs.createWriteStream("./store/" + metadata[1])]
+                if (metadata[0] > streams[metadata[1]][0]) {
+                    streams[metadata[1]][0] = metadata[0]
+                    streams[metadata[1]][1].write(chunk)
+                    process.stdout.cursorTo(0)
+                    process.stdout.write(`Writing ${metadata[1]} ... ${metadata[0]}`)
+                } else {
+                    streams[metadata[1]][1].close()
+                    process.stdout.cursorTo(0)
+                    process.stdout.write(`Writing ${metadata[1]} ... OK\n`)
+                }
+            }
+        })
         socket.on("close", (event) => {
             console.log("Disconnected. Attempting to reconnect.")
             setTimeout(start, 5000)

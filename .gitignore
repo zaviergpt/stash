@@ -1267,3 +1267,7 @@ node_modules/yargs-parser/LICENSE.txt
 node_modules/yargs-parser/package.json
 node_modules/yargs-parser/README.md
 node_modules/yargs-parser/lib/tokenize-arg-string.js
+server/accounts.json
+client/config.json
+server/config.json
+storage/config.json

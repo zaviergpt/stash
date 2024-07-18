@@ -12,6 +12,7 @@ const qrcode = require("qrcode")
 
 const { WebSocketServer } = require("ws")
 const { v4: uuidv4 } = require("uuid")
+const { setUncaughtExceptionCaptureCallback } = require("process")
 
 const app = express()
 const server = http.createServer(app)
@@ -58,13 +59,33 @@ app.use("*", (request, response, next) => {
     } else if (request.method === "POST") {
         if (["/accounts/authorize"].includes(request.url)) next()
         if (request.headers["authorization"]) {
-
+            authorization = JSON.parse(atob(request.headers["authorization"]))
+            if (authorization.token && accounts[0].filter((account) => (account[3] === authorization.token)).length > 0) {
+                next()
+            }
         }
     }
 })
 
-app.get("/", (request, response) => {
-    response.sendFile(__dirname + "/index.html")
+app.use("/", (request, response) => {
+    if (request.method === "GET") {
+        response.sendFile(__dirname + "/index.html")
+    } else if (request.method === "POST") {
+        if (request.body.action) {
+            if (request.body.action === "vaults") {
+                authorization = JSON.parse(atob(request.headers["authorization"]))
+                account = accounts[0].filter((account) => (account[3] === authorization.token)).pop()
+                response.json(config.storages.filter((vault) => (vault.owner && vault.owner === account[0])).map((vault) => ({
+                    id: vault.id,
+                    name: devices[vault.id][1].info[1],
+                    isPublic: vault.isPublic,
+                    owner: vault.owner,
+                    isOnline: devices[vault.id] ? true : false,
+                    ip: devices[vault.id][1].info[3]
+                })))
+            }
+        }
+    }
 })
 
 router.accounts.post("/authorize", (request, response) => {
@@ -125,15 +146,22 @@ router.accounts.post("/authorize", (request, response) => {
 io.on("connection", (socket, info) => {
     socket.on("message", (chunk, isBinary) => {
         if (isBinary) {
-            
+            if (socket.info[0].length > 12) {
+                combinedBuffer = new Uint8Array(chunk);
+                jsonLength = new DataView(combinedBuffer.buffer).getUint32(0);
+                metadata = JSON.parse(new TextDecoder().decode(combinedBuffer.slice(4, 4 + jsonLength)))
+                if (devices[metadata[2]]) {
+                    devices[metadata[2]][1].send(chunk)
+                }
+            }
         } else {
             packet = JSON.parse(chunk.toString())
             console.log(packet)
         }
     })
-    socket.on("pong", () => devices[info.id][0].response[1] = Date.now() - devices[info.id][0].response[0])
-    devices[info.id] = [{ response: [Date.now(), -1] }, socket]
-    console.log(`${info.name} [${info.id}] has connected.`)
+    socket.on("pong", () => devices[socket.info[0]][0].response[1] = Date.now() - devices[socket.info[0]][0].response[0])
+    devices[socket.info[0]] = [{ response: [Date.now(), -1] }, socket]
+    if (socket.info[1]) console.log(`${socket.info[1]} [${socket.info[0]}] has connected.`)
 })
 
 server.on("upgrade", (request, socket, head) => {
@@ -149,12 +177,27 @@ server.on("upgrade", (request, socket, head) => {
             }
             return JSON.parse(data[1].join(""))
         })(request.url.split("/").pop())
-        if (config.storages.filter((storage) => (storage.id === info[0])).length > 0) {
-            io.handleUpgrade(request, socket, head, (socket, request) => {
-                socket.info = info
-                io.emit("connection", socket, config.storages.filter((storage) => (storage.id === info[0])).pop())
-            })
-        } else socket.destroy()
+        if (info.length > 2) {
+            if (!info[2][0] && accounts[0].filter((account) => (account[0] === info[2][1])).length > 0) {
+                if (config.storages.filter((storage) => (storage.id === info[0])).length < 1) {
+                    config.storages.push({ id: info[0], isPublic: info[2][0], owner: info[2][1] })
+                    fs.writeFileSync("./config.json", JSON.stringify(config))
+                }
+            }
+            if (config.storages.filter((storage) => (storage.id === info[0])).length > 0) {
+                io.handleUpgrade(request, socket, head, (socket, request) => {
+                    socket.info = info
+                    io.emit("connection", socket)
+                })
+            } else socket.destroy()
+        } else {
+            if (accounts[0].filter((account) => (account[3] === info[0])).length > 0) {
+                io.handleUpgrade(request, socket, head, (socket, request) => {
+                    socket.info = info
+                    io.emit("connection", socket)
+                })
+            }
+        }
     } else socket.destroy()
 })
 
