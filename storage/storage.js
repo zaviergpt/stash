@@ -69,6 +69,9 @@ function start() {
                     process.stdout.cursorTo(0)
                     process.stdout.write(`Writing ${metadata[1]} ... OK\n`)
                 }
+            } else {
+                packet = JSON.parse(chunk)
+                console.log(packet)
             }
         })
         socket.on("close", (event) => {

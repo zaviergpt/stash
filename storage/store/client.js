@@ -1,20 +1,10 @@
 
 const fs = require("fs")
 
-const youtube = {
-    core: require("@distube/ytdl-core")
-}
-
-const ffmpeg = {
-    static: require("ffmpeg-static"),
-    fluent: require("fluent-ffmpeg")
-}
-
 const { v4: uuidv4 } = require("uuid")
 const { WebSocket } = require("ws")
 
 const readline = require("readline")
-const { PassThrough } = require("stream")
 
 const input = readline.createInterface({
     input: process.stdin, output: process.stdout
@@ -114,37 +104,7 @@ const API = (function(){
         socket = new WebSocket(`ws://${config.domain}/${token}`)
         socket.on("open", () => {
             console.log(`Successfully connected to ${config.domain} [${config.server}]\nand ready to send packets.`)
-            socket.on("message", (chunk, isBinary) => {
-                if (isBinary) {
-                    console.log(chunk)
-                } else {
-                    
-                }
-            })
-            count = 0
-            ffmpeg.fluent.setFfmpegPath(ffmpeg.static)
-            ffmpeg.fluent(youtube.core("https://www.youtube.com/watch?v=_2MwGhXoG7c", {
-                quality: "highestvideo",
-                filter: "videoandaudio"
-            }))
-                .videoCodec('libx264')
-                .size("3840x2160")
-                .outputOptions('-preset', 'slow')
-                .outputOptions('-crf', '9')
-                .audioCodec('copy')
-                .format('mpegts')
-                .on("progress", (progress) => {
-                    console.log(progress)
-                })
-                .on("error", (err) => console.log(err))
-                .pipe()
-                .on("data", (chunk) => {
-                    count += 1
-                    metadata = JSON.stringify([count, "video.mp4", "745bb3b47e22"])
-                    bufferLength = Buffer.alloc(4)
-                    bufferLength.writeUInt32BE(metadata.length, 0)
-                    socket.send(Buffer.concat([bufferLength, Buffer.from(metadata), chunk]))
-                })
+            API.run()
         })
     }
     return {
@@ -159,7 +119,7 @@ const API = (function(){
             if (command && command.length > 0) {
                 console.log("")
                 item = command.split(" ")
-                if (["send", "retrieve"].includes(item[0])) {
+                if (["send"].includes(item[0])) {
                     if (item.length === 3) {
                         if (item[0] === "send") {
                             if (fs.existsSync(item[1])) {
@@ -186,9 +146,6 @@ const API = (function(){
                                         working = false
                                     })
                             } else console.log("File does not exist.")
-                        } else if (item[0] === "retrieve") {
-                            working = true
-                            socket.send(JSON.stringify([item[1], item[2]]))
                         }
                     }
                 } else {

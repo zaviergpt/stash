@@ -153,10 +153,14 @@ io.on("connection", (socket, info) => {
                 if (devices[metadata[2]]) {
                     devices[metadata[2]][1].send(chunk)
                 }
+            } else {
+
             }
         } else {
             packet = JSON.parse(chunk.toString())
-            console.log(packet)
+            if (devices[packet[1]]) {
+                devices[packet[1]][1].send(chunk.toString())
+            }
         }
     })
     socket.on("pong", () => devices[socket.info[0]][0].response[1] = Date.now() - devices[socket.info[0]][0].response[0])
